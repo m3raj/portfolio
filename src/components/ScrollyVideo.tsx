@@ -24,14 +24,33 @@ export default function ScrollyVideo({ src, children }: ScrollyVideoProps) {
     stiffness: 400,
   });
 
+  // iOS fix: play video silently once so we can control currentTime
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // iOS requires a play() once for programmatic currentTime updates
+    const initVideo = async () => {
+      try {
+        video.muted = true;
+        video.playsInline = true;
+        await video.play();
+        video.pause(); // pause immediately, we only need this to allow scroll-driven playback
+      } catch (err) {
+        console.log("iOS video play init blocked:", err);
+      }
+    };
+
+    initVideo();
+  }, []);
+
   // Update video time based on scroll
   useMotionValueEvent(springScroll, "change", (latest) => {
-    if (videoRef.current && videoRef.current.duration) {
-       // Check if duration is valid (readyState > 0)
-       if (videoRef.current.readyState > 0) {
-          videoRef.current.currentTime = latest * videoRef.current.duration;
-       }
-    }
+    const video = videoRef.current;
+    if (!video || !video.duration || video.readyState < 2) return;
+
+    // Set video time based on scroll (scroll-driven only)
+    video.currentTime = latest * video.duration;
   });
 
   return (
@@ -45,7 +64,6 @@ export default function ScrollyVideo({ src, children }: ScrollyVideoProps) {
           playsInline
           preload="auto"
         />
-        {/* Render children (Overlay) passing the springScroll value */}
         {children && children(springScroll)}
       </div>
     </div>
