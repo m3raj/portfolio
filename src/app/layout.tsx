@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: "A full stack developer portfolio.",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
